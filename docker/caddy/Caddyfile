@@ -1,0 +1,16 @@
+{$DOMAIN} {
+    # API requests → Rails backend
+    handle /api/* {
+        reverse_proxy backend:3000
+    }
+
+    # Storage files → Rails backend
+    handle /storage/* {
+        reverse_proxy backend:3000
+    }
+
+    # Static files → Frontend container
+    handle {
+        reverse_proxy frontend:80
+    }
+}

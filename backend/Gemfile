@@ -1,0 +1,36 @@
+source 'https://rubygems.org'
+
+ruby '>= 3.2.0', '< 3.3.0'
+
+# Core Rails
+gem 'rails', '~> 7.1.0'
+gem 'mysql2', '~> 0.5'
+gem 'puma', '>= 5.0'
+
+# Authentication
+gem 'bcrypt', '~> 3.1.7'
+
+# CORS for API
+gem 'rack-cors'
+
+# JSON serialization
+gem 'jbuilder'
+
+# Web Push Notifications
+gem 'web-push'
+
+# Timezone data
+gem 'tzinfo-data', platforms: %i[windows jruby]
+
+# Boot performance
+gem 'bootsnap', require: false
+
+group :development, :test do
+  gem 'debug', platforms: %i[mri windows]
+  gem 'rspec-rails'
+  gem 'factory_bot_rails'
+end
+
+group :development do
+  gem 'spring'
+end
