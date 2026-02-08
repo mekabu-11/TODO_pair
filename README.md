@@ -15,31 +15,28 @@
 | レイヤー | 技術 |
 |---------|------|
 | フロントエンド | React 18, Vite 5, React Router 6 |
-| バックエンド | Ruby on Rails 7, Ruby 3.2 |
-| データベース | MySQL 8.0 |
-| インフラ | Docker, Docker Compose |
+| バックエンド | Supabase (Database, Auth, Storage) |
+| データベース | PostgreSQL (Supabase) |
+| インフラ | Docker, Docker Compose (Frontend only) |
 
 ## 🚀 開発環境セットアップ
 
 ### 前提条件
 - Docker & Docker Compose
+- Node.js (ローカル実行の場合)
 
 ### 起動手順
 
 ```bash
 # 1. 環境変数を設定
 cp .env.example .env
-# .envを編集してパスワードなどを設定
+# .envを編集してSupabaseのURLとKeyを設定
 
 # 2. Docker起動
 docker compose up -d
 
-# 3. DBマイグレーション
-docker compose exec backend rails db:create db:migrate
-
-# 4. アクセス
+# 3. アクセス
 # Frontend: http://localhost:5174
-# API: http://localhost:8000/api
 ```
 
 ## 📁 ディレクトリ構成
@@ -47,8 +44,6 @@ docker compose exec backend rails db:create db:migrate
 ```
 TODO_pair/
 ├── frontend/          # React (Vite)
-├── backend/           # Rails API
-├── docker/            # Docker設定
 ├── docker-compose.yml # 開発環境
 └── docker-compose.prod.yml # 本番環境
 ```

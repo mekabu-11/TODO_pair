@@ -1,70 +1,10 @@
 services:
-  # MySQL Database
-  db:
-    image: mysql:8.0
-    container_name: todo_pair_db
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Rails Backend
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.prod
-    container_name: todo_pair_backend
-    restart: unless-stopped
-    environment:
-      RAILS_ENV: production
-      DATABASE_URL: mysql2://${DB_USER}:${DB_PASSWORD}@db:3306/${DB_NAME}
-      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-    volumes:
-      - backend_storage:/app/storage
-    depends_on:
-      db:
-        condition: service_healthy
-
-  # React Frontend (Static Build)
+  # React Frontend (Production Build)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
-      args:
-        VITE_API_URL: ${VITE_API_URL}
     container_name: todo_pair_frontend
-    restart: unless-stopped
-
-  # Caddy (Production Reverse Proxy with HTTPS)
-  caddy:
-    image: caddy:2-alpine
-    container_name: todo_pair_caddy
-    restart: unless-stopped
+    restart: always
     ports:
       - "80:80"
-      - "443:443"
-    volumes:
-      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - backend
-      - frontend
-    environment:
-      DOMAIN: ${DOMAIN}
-
-volumes:
-  mysql_data:
-  backend_storage:
-  caddy_data:
-  caddy_config:
