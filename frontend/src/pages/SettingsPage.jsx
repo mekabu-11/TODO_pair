@@ -21,8 +21,10 @@ function SettingsPage({ user, onLogout }) {
     }, [user])
 
     const handleLogout = async () => {
+        console.log('handleLogout called')
         try {
             await authApi.logout()
+            console.log('authApi.logout success')
             onLogout()
             navigate('/login')
         } catch (error) {

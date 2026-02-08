@@ -54,16 +54,18 @@ function App() {
 
         // Listen for auth changes
         const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state change:', event, session?.user?.email)
 
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 if (session?.user && mounted) {
                     // Fetch full profile including custom fields
-                    try {
-                        const { data } = await api.auth.me()
+                    // Don't await here to prevent blocking the auth listener loop
+                    api.auth.me(session.user).then(({ data }) => {
+                        console.log('Profile fetched successfully', data.user)
                         if (mounted) setUser(data.user)
-                    } catch (e) {
+                    }).catch(e => {
                         console.error('Failed to fetch user profile', e)
-                    }
+                    })
                 }
             } else if (event === 'SIGNED_OUT') {
                 if (mounted) setUser(null)

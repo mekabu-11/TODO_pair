@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { couplesApi } from '../services/api'
 
 function JoinPage({ user, onJoin }) {
@@ -99,6 +99,22 @@ function JoinPage({ user, onJoin }) {
                     </button>
                 </div>
             </div>
+
+            {/* Bottom Navigation */}
+            <nav className="bottom-nav">
+                <Link to="/" className="nav-item">
+                    <span className="nav-icon">📝</span>
+                    <span className="nav-label">タスク</span>
+                </Link>
+                <Link to="/join" className="nav-item active">
+                    <span className="nav-icon">👫</span>
+                    <span className="nav-label">ペア</span>
+                </Link>
+                <Link to="/settings" className="nav-item">
+                    <span className="nav-icon">⚙️</span>
+                    <span className="nav-label">設定</span>
+                </Link>
+            </nav>
         </div>
     )
 }

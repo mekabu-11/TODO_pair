@@ -70,10 +70,9 @@ function TaskListPage({ user, onLogout }) {
                         <span className={`avatar ${user.color || 'blue'}`}>
                             {(user.name || user.email || '?').charAt(0).toUpperCase()}
                         </span>
-                        {/* Settings icon placeholder until generated */}
-                        <button onClick={onLogout} className="logout-btn" style={{ fontSize: '20px', padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}>
+                        <Link to="/settings" style={{ fontSize: '20px', padding: 0, textDecoration: 'none' }}>
                             ⚙️
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </header>
@@ -273,6 +272,22 @@ function TaskListPage({ user, onLogout }) {
                     />
                 </Link>
             </main>
+
+            {/* Bottom Navigation */}
+            <nav className="bottom-nav">
+                <Link to="/" className="nav-item active">
+                    <span className="nav-icon">📝</span>
+                    <span className="nav-label">タスク</span>
+                </Link>
+                <Link to="/join" className="nav-item">
+                    <span className="nav-icon">👫</span>
+                    <span className="nav-label">ペア</span>
+                </Link>
+                <Link to="/settings" className="nav-item">
+                    <span className="nav-icon">⚙️</span>
+                    <span className="nav-label">設定</span>
+                </Link>
+            </nav>
         </div>
     )
 }

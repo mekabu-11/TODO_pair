@@ -11,18 +11,23 @@ const formatResponse = (data, error) => {
 
 export const authApi = {
     login: async (data) => {
+        console.log('authApi.login called')
         const { data: authData, error } = await supabase.auth.signInWithPassword({
             email: data.email,
             password: data.password
         })
         if (error) throw { response: { data: { error: error.message }, status: 401 } }
 
+        console.log('SignIn success, fetching profile...')
         // Fetch profile
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', authData.user.id)
             .single()
+
+        if (profileError) console.error('Error fetching profile in login:', profileError)
+        console.log('Profile fetched:', profile)
 
         return { data: { user: { ...authData.user, ...profile }, message: 'Login successful' } }
     },
@@ -42,21 +47,37 @@ export const authApi = {
         return { data: { user: authData.user, message: 'Signup successful' } }
     },
     logout: async () => {
+        console.log('authApi.logout called')
         const { error } = await supabase.auth.signOut()
+        if (error) console.error('SignOut error:', error)
+        console.log('SignOut success')
         return formatResponse({ message: 'Logged out' }, error)
     },
-    me: async () => {
-        const { data: { user }, error } = await supabase.auth.getUser()
-        if (error || !user) throw { response: { status: 401 } }
+    me: async (currentUser = null) => {
+        console.log('authApi.me called', currentUser ? 'with user' : 'without user')
+        let user = currentUser
 
-        let { data: profile } = await supabase
+        if (!user) {
+            const { data, error } = await supabase.auth.getUser()
+            if (error || !data.user) throw { response: { status: 401 } }
+            user = data.user
+            console.log('getUser success (fetched), profile for:', user.id)
+        } else {
+            console.log('Using provided user, skipping getUser:', user.id)
+        }
+
+        let { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
             .single()
 
+        if (profileError) console.error('Error fetching profile in me:', profileError)
+        console.log('Profile fetch result:', profile)
+
         // Lazy creation: If profile doesn't exist, create it (e.g. if trigger failed)
         if (!profile) {
+            console.log('Profile missing, attempting lazy creation...')
             const { data: newProfile, error: createError } = await supabase
                 .from('profiles')
                 .insert({
@@ -69,6 +90,8 @@ export const authApi = {
 
             if (!createError) {
                 profile = newProfile
+            } else {
+                console.error('Lazy creation failed:', createError)
             }
         }
 

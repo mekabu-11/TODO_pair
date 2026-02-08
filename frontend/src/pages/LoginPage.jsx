@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '../services/api'
 
 function LoginPage({ onLogin }) {
+    const navigate = useNavigate()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
@@ -13,11 +14,19 @@ function LoginPage({ onLogin }) {
         setError('')
         setLoading(true)
 
+        console.log('Login attempt starting...')
         try {
-            await authApi.login({ email, password })
-            // Note: User state is set by onAuthStateChange in App.jsx
-            // No need to call onLogin here
+            const { data } = await authApi.login({ email, password })
+            console.log('Login API success:', data)
+
+            // Explicitly set user and navigate (Fixing the hang issue)
+            if (data?.user) {
+                console.log('Explicitly setting user and navigating')
+                onLogin(data.user)
+                navigate('/')
+            }
         } catch (err) {
+            console.error('Login error:', err)
             setError(err.response?.data?.error || 'ログインに失敗しました')
             setLoading(false)
         }
