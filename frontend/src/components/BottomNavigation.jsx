@@ -7,7 +7,7 @@ function BottomNavigation() {
     return (
         <nav className="bottom-nav">
             <Link to="/" className={`nav-item ${isActive('/') ? 'active' : ''}`}>
-                <span className="nav-icon">📝</span>
+                <span className="nav-icon">✓</span>
                 <span className="nav-label">タスク</span>
             </Link>
             <Link to="/join" className={`nav-item ${isActive('/join') ? 'active' : ''}`}>

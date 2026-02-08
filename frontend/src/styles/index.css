@@ -538,8 +538,8 @@ body {
 ======================================== */
 .fab {
   position: fixed;
-  bottom: var(--space-6);
-  right: var(--space-6);
+  bottom: calc(60px + var(--space-4));
+  right: var(--space-4);
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -548,7 +548,13 @@ body {
   border: none;
   box-shadow: var(--shadow-lg);
   cursor: pointer;
-  font-size: var(--font-size-2xl);
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   z-index: 100;
 }

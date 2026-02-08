@@ -138,50 +138,70 @@ export const tasksApi = {
         return formatResponse({ tasks, meta: { total_count: tasks.length } }, error)
     },
     get: async (id) => {
+        // Simple query without relations to avoid schema mismatch errors
         const { data, error } = await supabase
             .from('tasks')
-            .select(`
-                *,
-                assignee:profiles!assignee_id(id, name, color)
-            `)
+            .select('*')
             .eq('id', id)
             .single()
 
         if (error) return formatResponse(null, error)
 
-        // Fetch subtasks separately to avoid relation issues
+        // Fetch assignee separately if exists
+        let assignee = null
+        if (data.assignee_id) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('id, name, color')
+                .eq('id', data.assignee_id)
+                .single()
+            assignee = profile
+        }
+
+        // Fetch subtasks separately
         const { data: subtasks } = await supabase
             .from('tasks')
             .select('*')
             .eq('parent_id', id)
             .order('created_at')
 
-        return { data: { ...data, subtasks: subtasks || [] } }
+        return { data: { ...data, assignee, subtasks: subtasks || [] } }
     },
     create: async (data) => {
         // Get current user's couple_id
         const { data: { user } } = await supabase.auth.getUser()
         const { data: profile } = await supabase.from('profiles').select('couple_id').eq('id', user.id).single()
 
+        // Build task data - only include fields that definitely exist in the table
+        const taskData = {
+            title: data.title,
+            description: data.description || null,
+            due_date: data.due_date || null,
+            couple_id: profile?.couple_id || null,
+            assignee_id: data.assignee_id || null
+        }
+
+        // Try inserting the task
         const { data: newTask, error } = await supabase
             .from('tasks')
-            .insert({
-                ...data,
-                couple_id: profile?.couple_id || null,
-                assignee_id: data.assignee_id || null,
-                created_by: user.id
-            })
+            .insert(taskData)
             .select()
             .single()
+
         return formatResponse(newTask, error)
     },
     update: async (id, data) => {
+        // Only update known fields to avoid column mismatch errors
+        const updateData = {}
+        if (data.title !== undefined) updateData.title = data.title
+        if (data.description !== undefined) updateData.description = data.description
+        if (data.due_date !== undefined) updateData.due_date = data.due_date
+        if (data.assignee_id !== undefined) updateData.assignee_id = data.assignee_id
+        if (data.completed !== undefined) updateData.completed = data.completed
+
         const { data: updatedTask, error } = await supabase
             .from('tasks')
-            .update({
-                ...data,
-                updated_at: new Date().toISOString()
-            })
+            .update(updateData)
             .eq('id', id)
             .select()
             .single()

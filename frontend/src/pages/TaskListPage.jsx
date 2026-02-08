@@ -142,7 +142,7 @@ function TaskListPage({ user }) {
 
                 {/* FAB */}
                 <Link to="/tasks/new" className="fab">
-                    ＋
+                    +
                 </Link>
             </main>
 
