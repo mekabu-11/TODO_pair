@@ -36,10 +36,13 @@ function NewTaskPage({ user }) {
 
     const loadMembers = async () => {
         try {
-            const response = await couplesApi.show()
-            setMembers(response.data.members || [])
+            if (user.couple_id) {
+                const response = await couplesApi.show()
+                setMembers(response.data.members || [])
+            } else {
+                setMembers([{ id: user.id, name: user.name, color: user.color }])
+            }
         } catch (error) {
-            // User might not have a couple yet
             setMembers([{ id: user.id, name: user.name, color: user.color }])
         }
     }
@@ -56,7 +59,8 @@ function NewTaskPage({ user }) {
                 category: category || null,
                 // priority: priority ? parseInt(priority) : null, // Not in DB yet
                 due_date: dueDate || null,
-                assignee_id: assigneeId ? parseInt(assigneeId) : null
+                assignee_id: assigneeId ? parseInt(assigneeId) : null,
+                is_unpaired: !user.couple_id // Flag to api logic
             })
             navigate('/')
         } catch (err) {
@@ -78,6 +82,41 @@ function NewTaskPage({ user }) {
                 </h1>
 
                 {error && <div className="error-message">{error}</div>}
+
+                {!user.couple_id && (
+                    <div className="info-message" style={{
+                        background: '#e3f2fd',
+                        color: '#1565c0',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        marginBottom: '24px',
+                        fontSize: '14px',
+                        border: '1px solid #90caf9',
+                        textAlign: 'center'
+                    }}>
+                        <span style={{ fontSize: '24px', display: 'block', marginBottom: '8px' }}>👤</span>
+                        <strong>個人モードで使用中</strong>
+                        <p style={{ margin: '8px 0', fontSize: '13px' }}>
+                            このタスクはあなただけが見れます。パートナーと共有したい場合は連携してください。
+                        </p>
+                        <button
+                            onClick={() => navigate('/join')}
+                            style={{
+                                background: '#1565c0',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '8px 16px',
+                                marginTop: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                fontSize: '13px'
+                            }}
+                        >
+                            パートナーと連携する
+                        </button>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit}>
                     <div className="card">

@@ -78,12 +78,22 @@ export const authApi = {
         // Lazy creation: If profile doesn't exist, create it (e.g. if trigger failed)
         if (!profile) {
             console.log('Profile missing, attempting lazy creation...')
+            // Generate a random 8-character invite code
+            const generateInviteCode = () => {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+                let code = ''
+                for (let i = 0; i < 8; i++) {
+                    code += chars.charAt(Math.floor(Math.random() * chars.length))
+                }
+                return code
+            }
             const { data: newProfile, error: createError } = await supabase
                 .from('profiles')
                 .insert({
                     id: user.id,
                     name: user.user_metadata?.name || 'No Name',
-                    color: user.user_metadata?.color || 'blue'
+                    color: user.user_metadata?.color || 'blue',
+                    invite_code: generateInviteCode()
                 })
                 .select()
                 .single()
@@ -132,26 +142,34 @@ export const tasksApi = {
             .from('tasks')
             .select(`
                 *,
-                assignee:profiles!assignee_id(id, name, color),
-                subtasks(*)
+                assignee:profiles!assignee_id(id, name, color)
             `)
             .eq('id', id)
             .single()
-        return formatResponse(data, error)
+
+        if (error) return formatResponse(null, error)
+
+        // Fetch subtasks separately to avoid relation issues
+        const { data: subtasks } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('parent_id', id)
+            .order('created_at')
+
+        return { data: { ...data, subtasks: subtasks || [] } }
     },
     create: async (data) => {
         // Get current user's couple_id
         const { data: { user } } = await supabase.auth.getUser()
         const { data: profile } = await supabase.from('profiles').select('couple_id').eq('id', user.id).single()
 
-        if (!profile?.couple_id) throw new Error('No couple associated')
-
         const { data: newTask, error } = await supabase
             .from('tasks')
             .insert({
                 ...data,
-                couple_id: profile.couple_id,
-                assignee_id: data.assignee_id || null
+                couple_id: profile?.couple_id || null,
+                assignee_id: data.assignee_id || null,
+                created_by: user.id
             })
             .select()
             .single()
@@ -250,18 +268,53 @@ export const commentsApi = {
 
 export const couplesApi = {
     join: async (inviteCode) => {
-        const { data: couple, error } = await supabase.from('couples').select('id').eq('invite_code', inviteCode).single()
-        if (error || !couple) throw new Error('Invalid invite code')
+        // Find the partner by their invite_code
+        const { data: partner, error: partnerError } = await supabase
+            .from('profiles')
+            .select('id, couple_id, name')
+            .eq('invite_code', inviteCode.toUpperCase())
+            .single()
+
+        if (partnerError || !partner) {
+            throw new Error('招待コードが見つかりません')
+        }
 
         const { data: { user } } = await supabase.auth.getUser()
 
-        // Update profile with couple_id
+        // Can't pair with yourself
+        if (partner.id === user.id) {
+            throw new Error('自分自身とはペアリングできません')
+        }
+
+        let coupleId = partner.couple_id
+
+        // If partner doesn't have a couple yet, create one
+        if (!coupleId) {
+            const { data: newCouple, error: coupleError } = await supabase
+                .from('couples')
+                .insert({ invite_code: inviteCode.toUpperCase() })
+                .select()
+                .single()
+
+            if (coupleError) throw new Error('ペア作成に失敗しました')
+            coupleId = newCouple.id
+
+            // Update partner's profile with couple_id
+            await supabase
+                .from('profiles')
+                .update({ couple_id: coupleId })
+                .eq('id', partner.id)
+        }
+
+        // Update current user's profile with couple_id
         const { error: updateError } = await supabase
             .from('profiles')
-            .update({ couple_id: couple.id })
+            .update({ couple_id: coupleId })
             .eq('id', user.id)
 
-        return formatResponse({ message: 'Joined couple successfully' }, updateError)
+        if (updateError) throw new Error('ペアリングに失敗しました')
+
+        return { data: { message: `${partner.name}さんとペアリングしました！` } }
     },
     show: async () => {
         const { data: { user } } = await supabase.auth.getUser()

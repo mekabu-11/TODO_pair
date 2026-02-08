@@ -1,0 +1,23 @@
+#!/bin/bash
+# Script to run database migration in Supabase
+
+echo "🚀 Running Personal Mode Migration..."
+echo ""
+echo "Please follow these steps:"
+echo ""
+echo "1. Go to your Supabase Dashboard"
+echo "2. Navigate to: SQL Editor"
+echo "3. Click 'New query'"
+echo "4. Copy the contents of migrations/001_personal_mode.sql"
+echo "5. Paste and click 'Run'"
+echo ""
+echo "Migration file location: migrations/001_personal_mode.sql"
+echo ""
+echo "This will:"
+echo "  - Make couple_id nullable in tasks table"
+echo "  - Add created_by column to tasks"
+echo "  - Update RLS policies to support personal tasks"
+echo ""
+read -p "Press Enter after you've run the migration in Supabase..."
+echo ""
+echo "✅ Migration should now be complete!"

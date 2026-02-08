@@ -633,8 +633,9 @@ body {
 }
 
 .empty-state-icon {
-  font-size: 64px;
+  font-size: 48px;
   margin-bottom: var(--space-4);
+  opacity: 0.5;
 }
 
 .empty-state-title {
@@ -839,4 +840,176 @@ body {
 
 .back-button:hover {
   color: var(--gray-800);
+}
+
+/* ========================================
+   Filters (Task List)
+======================================== */
+.filters {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-btn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  background: white;
+  color: var(--gray-600);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  border: 1px solid var(--gray-200);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.filter-btn:hover {
+  border-color: var(--blue-300);
+  color: var(--blue-600);
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, var(--blue-500) 0%, var(--green-500) 100%);
+  color: white;
+  border-color: transparent;
+}
+
+/* ========================================
+   Checkbox (Task Card)
+======================================== */
+.checkbox {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--gray-300);
+  background: white;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.checkbox:hover {
+  border-color: var(--blue-400);
+}
+
+.checkbox.checked {
+  background: linear-gradient(135deg, var(--blue-500) 0%, var(--green-500) 100%);
+  border-color: transparent;
+}
+
+.checkbox img {
+  width: 14px;
+  height: 14px;
+  filter: brightness(0) invert(1);
+}
+
+/* ========================================
+   Task Header & Content
+======================================== */
+.task-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.task-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.task-link:hover .task-title {
+  color: var(--blue-600);
+}
+
+.expand-btn {
+  background: none;
+  border: none;
+  padding: var(--space-2);
+  cursor: pointer;
+  color: var(--gray-400);
+  font-size: 12px;
+  transition: all var(--transition-fast);
+}
+
+.expand-btn:hover {
+  color: var(--gray-600);
+}
+
+/* ========================================
+   Subtasks
+======================================== */
+.subtasks-list {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--gray-100);
+  margin-left: 36px;
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) 0;
+  gap: var(--space-2);
+}
+
+/* ========================================
+   Empty State Fix
+======================================== */
+.empty-state {
+  text-align: center;
+  padding: var(--space-12) var(--space-4);
+  color: var(--gray-500);
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: var(--space-4);
+  opacity: 0.4;
+}
+
+.empty-icon img {
+  width: 64px;
+  height: 64px;
+  opacity: 0.3;
+}
+
+.empty-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--gray-400);
+  margin-top: var(--space-2);
+}
+
+/* ========================================
+   Meta Items
+======================================== */
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  color: var(--gray-500);
+}
+
+.meta-item.overdue {
+  color: var(--error);
+}
+
+/* ========================================
+   Nav Icon Fix
+======================================== */
+.nav-icon {
+  font-size: 20px;
+  margin-bottom: var(--space-1);
+}
+
+.nav-label {
+  font-size: var(--font-size-xs);
 }
