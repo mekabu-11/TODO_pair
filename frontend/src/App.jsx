@@ -106,10 +106,11 @@ function App() {
                     path="/login"
                     element={user ? <Navigate to="/" /> : <LoginPage onLogin={setUser} />}
                 />
-                <Route
+                {/* Signup route disabled for public access */}
+                {/* <Route
                     path="/signup"
                     element={user ? <Navigate to="/" /> : <SignupPage onSignup={setUser} />}
-                />
+                /> */}
 
                 {/* Protected routes */}
                 <Route

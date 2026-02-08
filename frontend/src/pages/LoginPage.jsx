@@ -64,8 +64,8 @@ function LoginPage({ onLogin }) {
                 </form>
 
                 <div className="auth-footer">
-                    アカウントをお持ちでない方は
-                    <Link to="/signup">新規登録</Link>
+                    {/* アカウントをお持ちでない方は <Link to="/signup">新規登録</Link> */}
+                    <span style={{ fontSize: '0.9em', color: '#666' }}>※新規登録は管理者にお問い合わせください</span>
                 </div>
             </div>
         </div>
