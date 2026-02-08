@@ -14,11 +14,11 @@ function LoginPage({ onLogin }) {
         setLoading(true)
 
         try {
-            const response = await authApi.login({ email, password })
-            onLogin(response.data)
+            await authApi.login({ email, password })
+            // Note: User state is set by onAuthStateChange in App.jsx
+            // No need to call onLogin here
         } catch (err) {
             setError(err.response?.data?.error || 'ログインに失敗しました')
-        } finally {
             setLoading(false)
         }
     }

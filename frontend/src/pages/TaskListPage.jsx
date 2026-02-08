@@ -21,7 +21,7 @@ function TaskListPage({ user, onLogout }) {
     const loadTasks = async () => {
         try {
             const response = await tasksApi.list({ status: filter === 'mine' ? undefined : filter, assignee_id: filter === 'mine' ? user.id : undefined })
-            setTasks(response.data)
+            setTasks(response.data.tasks || [])
         } catch (error) {
             console.error('Failed to load tasks:', error)
         } finally {
@@ -59,14 +59,16 @@ function TaskListPage({ user, onLogout }) {
         )
     }
 
+    if (!user) return null
+
     return (
         <div className="page">
             <header className="header">
                 <div className="container header-content">
                     <h1 className="logo">ふたりのTODO</h1>
                     <div className="user-menu">
-                        <span className={`avatar ${user.color}`}>
-                            {user.name.charAt(0)}
+                        <span className={`avatar ${user.color || 'blue'}`}>
+                            {(user.name || user.email || '?').charAt(0).toUpperCase()}
                         </span>
                         {/* Settings icon placeholder until generated */}
                         <button onClick={onLogout} className="logout-btn" style={{ fontSize: '20px', padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}>
@@ -247,7 +249,14 @@ function TaskListPage({ user, onLogout }) {
                     )}
                 </div>
 
-                <Link to="/tasks/new" className="fab" style={{
+                <Link to="/tasks/new" className="fab" onClick={(e) => {
+                    if (!user.couple_id) {
+                        e.preventDefault()
+                        if (confirm('タスクを作成するにはパートナーとの連携が必要です。\n設定画面に移動しますか？')) {
+                            window.location.hash = '/settings'
+                        }
+                    }
+                }} style={{
                     backgroundColor: 'white',
                     border: '2px solid var(--primary-color)',
                     display: 'flex',

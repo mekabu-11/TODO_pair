@@ -22,16 +22,16 @@ function SignupPage({ onSignup }) {
         setLoading(true)
 
         try {
-            const response = await authApi.signup({
+            await authApi.signup({
                 name,
                 email,
                 password,
                 password_confirmation: passwordConfirmation
             })
-            onSignup(response.data)
+            // Note: User state is set by onAuthStateChange in App.jsx
+            // No need to call onSignup here
         } catch (err) {
             setError(err.response?.data?.errors?.join(', ') || '登録に失敗しました')
-        } finally {
             setLoading(false)
         }
     }

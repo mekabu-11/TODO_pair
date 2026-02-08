@@ -1,8 +1,24 @@
-import { useNavigate } from 'react-router-dom'
-import { authApi } from '../services/api'
+import { useState, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { authApi, couplesApi } from '../services/api'
 
 function SettingsPage({ user, onLogout }) {
     const navigate = useNavigate()
+    const [partner, setPartner] = useState(null)
+
+    useEffect(() => {
+        const fetchPartner = async () => {
+            if (user?.couple_id) {
+                try {
+                    const { data } = await couplesApi.show()
+                    setPartner(data.partner)
+                } catch (error) {
+                    console.error('Failed to fetch partner:', error)
+                }
+            }
+        }
+        fetchPartner()
+    }, [user])
 
     const handleLogout = async () => {
         try {
@@ -57,14 +73,14 @@ function SettingsPage({ user, onLogout }) {
                 <div className="settings-section">
                     <div className="settings-section-title">パートナー連携</div>
                     <div className="card">
-                        {user.partner ? (
+                        {partner ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                 <div
                                     style={{
                                         width: '48px',
                                         height: '48px',
                                         borderRadius: '50%',
-                                        background: user.partner.color === 'blue' ? 'var(--blue-500)' : 'var(--green-500)',
+                                        background: partner.color === 'blue' ? 'var(--blue-500)' : 'var(--green-500)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -73,10 +89,10 @@ function SettingsPage({ user, onLogout }) {
                                         fontWeight: 'bold'
                                     }}
                                 >
-                                    {user.partner.name.charAt(0)}
+                                    {partner.name.charAt(0)}
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: '16px', fontWeight: '500' }}>{user.partner.name}</div>
+                                    <div style={{ fontSize: '16px', fontWeight: '500' }}>{partner.name}</div>
                                     <div style={{ fontSize: '14px', color: 'var(--gray-500)' }}>連携済み ✓</div>
                                 </div>
                             </div>
@@ -88,7 +104,7 @@ function SettingsPage({ user, onLogout }) {
                                 <div style={{ marginBottom: '8px' }}>
                                     <span style={{ fontSize: '12px', color: 'var(--gray-500)' }}>あなたの招待コード</span>
                                 </div>
-                                <div className="invite-code">{user.invite_code}</div>
+                                <div className="invite-code">{user.invite_code || '生成中...'}</div>
                                 <button
                                     className="btn btn-primary"
                                     onClick={() => navigate('/join')}
@@ -122,18 +138,18 @@ function SettingsPage({ user, onLogout }) {
 
             {/* Bottom Navigation */}
             <nav className="bottom-nav">
-                <a href="/" className="nav-item">
+                <Link to="/" className="nav-item">
                     <span className="nav-item-icon">📋</span>
                     タスク
-                </a>
-                <a href="/join" className="nav-item">
+                </Link>
+                <Link to="/join" className="nav-item">
                     <span className="nav-item-icon">👫</span>
                     ペア
-                </a>
-                <a href="/settings" className="nav-item active">
+                </Link>
+                <Link to="/settings" className="nav-item active">
                     <span className="nav-item-icon">⚙️</span>
                     設定
-                </a>
+                </Link>
             </nav>
         </div>
     )

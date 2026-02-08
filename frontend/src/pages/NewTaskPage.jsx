@@ -54,7 +54,7 @@ function NewTaskPage({ user }) {
                 title,
                 description: description || null,
                 category: category || null,
-                priority: priority ? parseInt(priority) : null,
+                // priority: priority ? parseInt(priority) : null, // Not in DB yet
                 due_date: dueDate || null,
                 assignee_id: assigneeId ? parseInt(assigneeId) : null
             })

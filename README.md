@@ -58,6 +58,26 @@ TODO_pair/
 - **User 1**: 青 (#3B82F6)
 - **User 2**: 緑 (#10B981)
 
+## 🤖 AI開発サポート（Antigravity）
+
+このプロジェクトは、Antigravityによる開発を効率化するための設定を含んでいます：
+
+### Workflows (`.agent/workflows/`)
+よく使うコマンドをワークフローとして定義：
+- `dev-start.md` - 開発サーバー起動
+- `docker-compose.md` - Docker環境管理
+- `build.md` - プロジェクトビルド
+- `test.md` - テスト実行
+
+### Rules (`.agent/rules.md`)
+プロジェクトのコーディング規約とベストプラクティス
+
+### ガイド
+- `.agent/ANTIGRAVITY_GUIDE.md` - Antigravityの使い方
+- `.agent/MCP_SETUP.md` - MCPサーバー設定方法
+
+詳細は各ドキュメントを参照してください。
+
 ## 📄 ライセンス
 
 MIT
