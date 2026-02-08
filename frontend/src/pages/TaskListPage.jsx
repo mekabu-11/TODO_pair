@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { tasksApi } from '../services/api'
+import { tasksApi, subtasksApi } from '../services/api'
 import iconCheck from '../assets/images/icon_check.png'
 import BottomNavigation from '../components/BottomNavigation'
 
@@ -8,6 +8,7 @@ function TaskListPage({ user }) {
     const [tasks, setTasks] = useState([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState('all')
+    const [expandedTasks, setExpandedTasks] = useState({})
 
     useEffect(() => {
         loadTasks()
@@ -29,13 +30,39 @@ function TaskListPage({ user }) {
         }
     }
 
-    const toggleTask = async (taskId, currentStatus) => {
+    const toggleTask = async (taskId, currentStatus, subtasks = []) => {
         try {
-            await tasksApi.complete(taskId, !currentStatus)
+            const newStatus = !currentStatus
+            await tasksApi.complete(taskId, newStatus)
+
+            // サブタスクがあれば全て同じ状態にする
+            if (subtasks.length > 0) {
+                await Promise.all(
+                    subtasks.map(st => subtasksApi.update(st.id, newStatus))
+                )
+            }
+
             loadTasks()
         } catch (error) {
             console.error('Failed to toggle task:', error)
         }
+    }
+
+    const toggleSubtask = async (subtaskId, currentStatus, e) => {
+        e.stopPropagation()
+        try {
+            await subtasksApi.update(subtaskId, !currentStatus)
+            loadTasks()
+        } catch (error) {
+            console.error('Failed to toggle subtask:', error)
+        }
+    }
+
+    const toggleExpanded = (taskId) => {
+        setExpandedTasks(prev => ({
+            ...prev,
+            [taskId]: !prev[taskId]
+        }))
     }
 
     if (loading) {
@@ -98,13 +125,37 @@ function TaskListPage({ user }) {
                 {/* Task List */}
                 <div className="task-list">
                     {tasks.map(task => (
-                        <div key={task.id} className={`task-card ${task.completed ? 'completed' : ''}`}>
+                        <div key={task.id} className={`task-card ${task.completed ? 'completed' : ''}`} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                             <div className="task-header">
+                                {/* 三角アイコン（サブタスクがある場合のみ表示） */}
+                                {task.subtasks_count > 0 && (
+                                    <button
+                                        className="expand-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            toggleExpanded(task.id)
+                                        }}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            padding: '0 4px',
+                                            fontSize: '12px',
+                                            color: 'var(--gray-400)',
+                                            transition: 'transform 0.2s',
+                                            transform: expandedTasks[task.id] ? 'rotate(90deg)' : 'rotate(0deg)'
+                                        }}
+                                        aria-label={expandedTasks[task.id] ? 'サブタスクを折りたたむ' : 'サブタスクを展開'}
+                                    >
+                                        ▶
+                                    </button>
+                                )}
+
                                 <button
                                     className={`checkbox ${task.completed ? 'checked' : ''}`}
                                     onClick={(e) => {
                                         e.stopPropagation()
-                                        toggleTask(task.id, task.completed)
+                                        toggleTask(task.id, task.completed, task.subtasks || [])
                                     }}
                                 >
                                     {task.completed && <img src={iconCheck} alt="✓" />}
@@ -112,7 +163,23 @@ function TaskListPage({ user }) {
 
                                 <div className="task-content">
                                     <Link to={`/tasks/${task.id}`} className="task-link">
-                                        <h3 className="task-title">{task.title}</h3>
+                                        <h3 className="task-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            {task.title}
+                                            {/* 進捗率表示（サブタスクがある場合のみ） */}
+                                            {task.subtasks_count > 0 && (
+                                                <span style={{
+                                                    fontSize: '12px',
+                                                    fontWeight: '500',
+                                                    color: task.progress === 100 ? 'var(--green-600)' : 'var(--gray-500)',
+                                                    background: task.progress === 100 ? 'var(--green-50)' : 'var(--gray-100)',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '10px',
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    {task.completed_subtasks}/{task.subtasks_count} ({task.progress}%)
+                                                </span>
+                                            )}
+                                        </h3>
                                     </Link>
                                     <div className="task-meta">
                                         {task.due_date && (
@@ -128,6 +195,48 @@ function TaskListPage({ user }) {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* サブタスク一覧（展開時のみ表示） */}
+                            {task.subtasks_count > 0 && expandedTasks[task.id] && (
+                                <div className="subtasks-list" style={{
+                                    marginTop: '12px',
+                                    paddingTop: '12px',
+                                    borderTop: '1px solid var(--gray-100)',
+                                    marginLeft: '36px'
+                                }}>
+                                    {task.subtasks.map(subtask => (
+                                        <div
+                                            key={subtask.id}
+                                            className="subtask-item"
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                padding: '6px 0'
+                                            }}
+                                        >
+                                            <button
+                                                className={`checkbox ${subtask.completed ? 'checked' : ''}`}
+                                                onClick={(e) => toggleSubtask(subtask.id, subtask.completed, e)}
+                                                style={{
+                                                    width: '20px',
+                                                    height: '20px',
+                                                    minWidth: '20px'
+                                                }}
+                                            >
+                                                {subtask.completed && <img src={iconCheck} alt="✓" style={{ width: '10px', height: '10px' }} />}
+                                            </button>
+                                            <span style={{
+                                                fontSize: '14px',
+                                                color: subtask.completed ? 'var(--gray-400)' : 'var(--gray-700)',
+                                                textDecoration: subtask.completed ? 'line-through' : 'none'
+                                            }}>
+                                                {subtask.title}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     ))}
 

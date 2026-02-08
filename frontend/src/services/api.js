@@ -111,13 +111,11 @@ export const authApi = {
 
 export const tasksApi = {
     list: async (params) => {
+        // Query tasks - filter out subtasks (parent_id is null)
         let query = supabase
             .from('tasks')
-            .select(`
-                *,
-                assignee:profiles!assignee_id(id, name, color),
-                comments(count)
-            `)
+            .select('*')
+            .is('parent_id', null)
             .order('created_at', { ascending: false })
 
         if (params?.status === 'completed') {
@@ -128,12 +126,55 @@ export const tasksApi = {
 
         const { data, error } = await query
 
-        // Format data to match expected structure
-        const tasks = data?.map(t => ({
-            ...t,
-            comments_count: t.comments?.[0]?.count || 0,
-            assignee: t.assignee
-        })) || []
+        if (error) return formatResponse(null, error)
+
+        // Fetch assignees separately for tasks that have assignee_id
+        const assigneeIds = [...new Set((data || []).filter(t => t.assignee_id).map(t => t.assignee_id))]
+        let assigneeMap = {}
+        if (assigneeIds.length > 0) {
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, name, color')
+                .in('id', assigneeIds)
+            assigneeMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {})
+        }
+
+        // Fetch subtasks for all parent tasks
+        const taskIds = (data || []).map(t => t.id)
+        let subtasksMap = {}
+        if (taskIds.length > 0) {
+            const { data: subtasks } = await supabase
+                .from('tasks')
+                .select('*')
+                .in('parent_id', taskIds)
+                .order('created_at')
+
+            // Group subtasks by parent_id
+            for (const st of subtasks || []) {
+                if (!subtasksMap[st.parent_id]) {
+                    subtasksMap[st.parent_id] = []
+                }
+                subtasksMap[st.parent_id].push(st)
+            }
+        }
+
+        // Format data with subtasks info
+        const tasks = (data || []).map(t => {
+            const subtasks = subtasksMap[t.id] || []
+            const completedSubtasks = subtasks.filter(st => st.completed).length
+            const subtasksCount = subtasks.length
+            const progress = subtasksCount > 0 ? Math.round((completedSubtasks / subtasksCount) * 100) : null
+
+            return {
+                ...t,
+                comments_count: 0, // Skip comments count to avoid relation errors
+                assignee: t.assignee_id ? assigneeMap[t.assignee_id] : null,
+                subtasks,
+                subtasks_count: subtasksCount,
+                completed_subtasks: completedSubtasks,
+                progress
+            }
+        })
 
         return formatResponse({ tasks, meta: { total_count: tasks.length } }, error)
     },
@@ -165,7 +206,25 @@ export const tasksApi = {
             .eq('parent_id', id)
             .order('created_at')
 
-        return { data: { ...data, assignee, subtasks: subtasks || [] } }
+        // Fetch comments with user profiles
+        let comments = []
+        const { data: rawComments, error: commentsError } = await supabase
+            .from('comments')
+            .select('*')
+            .eq('task_id', id)
+            .order('created_at', { ascending: true })
+
+        if (!commentsError && rawComments && rawComments.length > 0) {
+            const userIds = [...new Set(rawComments.map(c => c.user_id))]
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, name, color')
+                .in('id', userIds)
+            const profileMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {})
+            comments = rawComments.map(c => ({ ...c, user: profileMap[c.user_id] || { name: 'Unknown', color: 'gray' } }))
+        }
+
+        return { data: { ...data, assignee, subtasks: subtasks || [], comments } }
     },
     create: async (data) => {
         // Get current user's couple_id
@@ -178,7 +237,8 @@ export const tasksApi = {
             description: data.description || null,
             due_date: data.due_date || null,
             couple_id: profile?.couple_id || null,
-            assignee_id: data.assignee_id || null
+            assignee_id: data.assignee_id || null,
+            parent_id: data.parent_id || null
         }
 
         // Try inserting the task
@@ -253,15 +313,26 @@ export const subtasksApi = {
 
 export const commentsApi = {
     list: async (taskId) => {
+        // Simple query to avoid relation errors
         const { data, error } = await supabase
             .from('comments')
-            .select(`
-                *,
-                user:profiles(id, name, color)
-            `)
+            .select('*')
             .eq('task_id', taskId)
             .order('created_at', { ascending: true })
-        return formatResponse(data, error)
+
+        if (error) return formatResponse(null, error)
+
+        // Fetch user profiles separately
+        const userIds = [...new Set(data.map(c => c.user_id))]
+        const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, name, color')
+            .in('id', userIds)
+
+        const profileMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {})
+        const commentsWithUsers = data.map(c => ({ ...c, user: profileMap[c.user_id] || { name: 'Unknown', color: 'gray' } }))
+
+        return formatResponse(commentsWithUsers, null)
     },
     create: async (taskId, content) => {
         const { data: { user } } = await supabase.auth.getUser()
@@ -273,12 +344,19 @@ export const commentsApi = {
                 task_id: taskId,
                 user_id: user.id
             })
-            .select(`
-                *,
-                user:profiles(id, name, color)
-            `)
+            .select()
             .single()
-        return formatResponse(data, error)
+
+        if (error) return formatResponse(null, error)
+
+        // Fetch user profile separately
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, name, color')
+            .eq('id', user.id)
+            .single()
+
+        return formatResponse({ ...data, user: profile || { name: 'You', color: 'blue' } }, null)
     },
     delete: async (id) => {
         const { error } = await supabase.from('comments').delete().eq('id', id)
@@ -353,11 +431,137 @@ export const couplesApi = {
     }
 }
 
+// Admin API for user management (requires Service Role Key)
+import { supabaseAdmin, isAdminClientAvailable } from '../lib/supabaseAdmin'
+
+export const adminApi = {
+    // Check if admin operations are available
+    isAvailable: () => isAdminClientAvailable(),
+
+    // List all users with their auth data
+    listUsers: async () => {
+        if (!supabaseAdmin) {
+            throw new Error('管理機能が利用できません。Service Role Keyを設定してください。')
+        }
+
+        // Get auth users
+        const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers()
+        if (error) throw new Error(error.message)
+
+        // Get profiles for additional data (exclude soft-deleted)
+        const { data: profiles } = await supabaseAdmin
+            .from('profiles')
+            .select('*')
+            .is('deleted_at', null)
+
+        const profileMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {})
+
+        // Merge auth users with profiles, only include users with active profiles
+        const usersWithProfiles = users
+            .filter(u => profileMap[u.id])
+            .map(u => ({
+                id: u.id,
+                email: u.email,
+                name: profileMap[u.id]?.name || 'No Name',
+                role: profileMap[u.id]?.role || 'user',
+                color: profileMap[u.id]?.color || 'blue',
+                couple_id: profileMap[u.id]?.couple_id,
+                created_at: u.created_at,
+                last_sign_in_at: u.last_sign_in_at
+            }))
+
+        return { data: usersWithProfiles }
+    },
+
+    // Create a new user
+    createUser: async ({ email, password, name, role = 'user' }) => {
+        if (!supabaseAdmin) {
+            throw new Error('管理機能が利用できません')
+        }
+
+        // Create auth user
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: { name }
+        })
+
+        if (authError) throw new Error(authError.message)
+
+        // Create profile
+        const { error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .insert({
+                id: authData.user.id,
+                name,
+                role,
+                color: 'blue'
+            })
+
+        if (profileError) console.error('Profile creation error:', profileError)
+
+        return { data: { user: authData.user, message: 'ユーザーを作成しました' } }
+    },
+
+    // Update user (email, password, or profile data)
+    updateUser: async (userId, updates) => {
+        if (!supabaseAdmin) {
+            throw new Error('管理機能が利用できません')
+        }
+
+        // Update auth data if email or password provided
+        if (updates.email || updates.password) {
+            const authUpdates = {}
+            if (updates.email) authUpdates.email = updates.email
+            if (updates.password) authUpdates.password = updates.password
+
+            const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, authUpdates)
+            if (authError) throw new Error(authError.message)
+        }
+
+        // Update profile data
+        const profileUpdates = {}
+        if (updates.name !== undefined) profileUpdates.name = updates.name
+        if (updates.role !== undefined) profileUpdates.role = updates.role
+        if (updates.color !== undefined) profileUpdates.color = updates.color
+
+        if (Object.keys(profileUpdates).length > 0) {
+            const { error: profileError } = await supabaseAdmin
+                .from('profiles')
+                .update(profileUpdates)
+                .eq('id', userId)
+
+            if (profileError) throw new Error(profileError.message)
+        }
+
+        return { data: { message: 'ユーザーを更新しました' } }
+    },
+
+    // Delete user (soft delete)
+    deleteUser: async (userId) => {
+        if (!supabaseAdmin) {
+            throw new Error('管理機能が利用できません')
+        }
+
+        // Soft delete: set deleted_at timestamp instead of actually deleting
+        const { error } = await supabaseAdmin
+            .from('profiles')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', userId)
+
+        if (error) throw new Error(error.message)
+
+        return { data: { message: 'ユーザーを削除しました' } }
+    }
+}
+
 const api = {
     auth: authApi,
     tasks: tasksApi,
     comments: commentsApi,
-    couples: couplesApi
+    couples: couplesApi,
+    admin: adminApi
 }
 
 export { api }

@@ -128,6 +128,25 @@ function SettingsPage({ user, onLogout }) {
                     </div>
                 </div>
 
+                {/* Admin Section - only visible to admins */}
+                {user.role === 'admin' && (
+                    <div className="settings-section">
+                        <div className="settings-section-title">管理者メニュー</div>
+                        <Link to="/admin" className="card" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <span style={{ fontSize: '24px' }}>👤</span>
+                                    <div>
+                                        <div style={{ fontWeight: '600' }}>ユーザー管理</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--gray-500)' }}>ユーザーの追加・編集・削除</div>
+                                    </div>
+                                </div>
+                                <span style={{ color: 'var(--gray-400)' }}>→</span>
+                            </div>
+                        </Link>
+                    </div>
+                )}
+
                 {/* Logout */}
                 <button
                     className="btn btn-danger btn-full"
